@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 try:
     from dotenv import load_dotenv
@@ -34,10 +35,13 @@ def _openai():
 GROQ_MODEL   = os.getenv("GROQ_MODEL")   or "llama-3.3-70b-versatile"
 OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
 
+_RETRY_DELAYS = [5, 15]
 
-def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str | None:
-    groq = _groq()
-    if groq:
+
+def _groq_call(groq, messages, temperature, max_tokens):
+    for attempt, delay in enumerate([0] + _RETRY_DELAYS, start=1):
+        if delay:
+            time.sleep(delay)
         try:
             resp = groq.chat.completions.create(
                 model=GROQ_MODEL,
@@ -47,7 +51,17 @@ def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str
             )
             return resp.choices[0].message.content.strip() or None
         except Exception as e:
-            print(f"[llm] Groq falhou ({e.__class__.__name__}): {e} — tentando OpenAI...", file=sys.stderr)
+            print(f"[llm] Groq tentativa {attempt} falhou ({e.__class__.__name__}): {e}", file=sys.stderr)
+    return None
+
+
+def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str | None:
+    groq = _groq()
+    if groq:
+        result = _groq_call(groq, messages, temperature, max_tokens)
+        if result:
+            return result
+        print("[llm] Groq esgotou tentativas — tentando OpenAI...", file=sys.stderr)
 
     openai = _openai()
     if openai:

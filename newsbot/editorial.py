@@ -20,7 +20,7 @@ _DEFAULT_PROMPT = (
 SYSTEM_PROMPT = os.getenv("EDITORIAL_PROMPT") or _DEFAULT_PROMPT
 
 
-def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 1200) -> Optional[str]:
+def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 900) -> Optional[str]:
     if not items:
         return None
 
