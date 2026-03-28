@@ -1,0 +1,55 @@
+name: Lembrete mensal - token LinkedIn
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar requests
+        run: pip install requests
+
+      - name: Verificar expiracao do token
+        id: check
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_CLIENT_ID:     ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+        run: python scripts/validate_linkedin_token.py
+
+      - name: Criar Issue de lembrete mensal
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const days = '${{ steps.check.outputs.days_left }}' || 'desconhecido';
+            const expiring = '${{ steps.check.outputs.token_expiring_soon }}' === 'true';
+            const urgency = expiring ? 'URGENTE - ' : '';
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `${urgency}Lembrete mensal: checar token LinkedIn (${days} dias restantes)`,
+              body: [
+                '## Lembrete mensal de renovacao do token LinkedIn',
+                '',
+                `Token expira em aproximadamente **${days} dias**.`,
+                '',
+                '### Renovar (quando necessario):',
+                '1. Rode `python3 scripts/get_linkedin_token.py` localmente',
+                '2. Autorize no navegador',
+                '3. Copie o `ACCESS_TOKEN` impresso no terminal',
+                '4. Atualize em: **Settings > Secrets > Actions > LINKEDIN_ACCESS_TOKEN**',
+                '',
+                '_Feche essa issue apos renovar._',
+              ].join('\n'),
+              labels: ['maintenance'],
+            });

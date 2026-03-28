@@ -1,0 +1,61 @@
+name: Post LinkedIn
+
+on:
+  schedule:
+    - cron: "0 12 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Validar token do LinkedIn
+        id: token_check
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_CLIENT_ID:     ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+        run: python scripts/validate_linkedin_token.py
+
+      - name: Criar Issue de aviso token expirando
+        if: steps.token_check.outputs.token_expiring_soon == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const days = '${{ steps.token_check.outputs.days_left }}';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `LinkedIn token expira em ${days} dias`,
+              body: [
+                `O \`LINKEDIN_ACCESS_TOKEN\` expira em **${days} dias**.`,
+                '',
+                '**Renovar:**',
+                '1. Rode `python3 scripts/get_linkedin_token.py` localmente',
+                '2. Copie o novo `ACCESS_TOKEN` impresso',
+                '3. Atualize o secret `LINKEDIN_ACCESS_TOKEN` em:',
+                '   Settings > Secrets > Actions > LINKEDIN_ACCESS_TOKEN',
+              ].join('\n'),
+              labels: ['maintenance'],
+            });
+
+      - name: Publicar post no LinkedIn
+        env:
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_MEMBER_URN:   ${{ secrets.LINKEDIN_MEMBER_URN }}
+          GROQ_API_KEY:          ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL:            ${{ secrets.GROQ_MODEL }}
+          OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
+          EDITORIAL_PROMPT:      ${{ vars.EDITORIAL_PROMPT }}
+          SUMMARIZE_PROMPT:      ${{ vars.SUMMARIZE_PROMPT }}
+          LINKEDIN_ENABLE_ARTICLE_PREVIEW: "0"
+        run: python -m newsbot.main
