@@ -1,30 +1,75 @@
 feeds:
+  # AWS
   - url: https://aws.amazon.com/blogs/architecture/feed/
     tags: [cloud, arquitetura, boas-praticas]
   - url: https://aws.amazon.com/blogs/security/feed/
     tags: [seguranca, cloud]
   - url: https://aws.amazon.com/blogs/devops/feed/
     tags: [devops, cloud, boas-praticas]
+  - url: https://aws.amazon.com/blogs/containers/feed/
+    tags: [cloud, kubernetes, container]
+  - url: https://aws.amazon.com/blogs/infrastructure-and-automation/feed/
+    tags: [cloud, devops, arquitetura]
+
+  # Google Cloud
   - url: https://cloud.google.com/blog/topics/devops-cicd/rss
     tags: [devops, cloud]
   - url: https://cloud.google.com/blog/topics/security/rss
     tags: [seguranca, cloud]
+  - url: https://cloud.google.com/blog/topics/infrastructure/rss
+    tags: [cloud, arquitetura]
+
+  # Azure
   - url: https://azurecomcdn.azureedge.net/en-us/updates/feed/
     tags: [cloud]
+  - url: https://techcommunity.microsoft.com/t5/azure-developer-community-blog/bg-p/AzureDevCommunityBlog/rss
+    tags: [cloud, devops]
+
+  # Kubernetes / CNCF
   - url: https://kubernetes.io/feed.xml
     tags: [sre, kubernetes, cloud]
   - url: https://www.cncf.io/feed/
     tags: [cloud, kubernetes, devops]
+
+  # Segurança
   - url: https://blog.cloudflare.com/rss/
     tags: [seguranca, cloud, arquitetura]
   - url: https://feeds.feedburner.com/TheHackersNews
     tags: [seguranca]
+  - url: https://www.bleepingcomputer.com/feed/
+    tags: [seguranca]
+  - url: https://www.darkreading.com/rss.xml
+    tags: [seguranca]
+  - url: https://portswigger.net/daily-swig/rss
+    tags: [seguranca]
+  - url: https://www.cisecurity.org/feed/advisories
+    tags: [seguranca, compliance]
+
+  # SRE / Platform Engineering
   - url: https://sre.google/feeds/posts/default
     tags: [sre, boas-praticas]
+  - url: https://www.pagerduty.com/blog/feed/
+    tags: [sre, incident, observability]
+  - url: https://grafana.com/blog/index.xml
+    tags: [observability, monitoring, sre]
+  - url: https://opentelemetry.io/blog/index.xml
+    tags: [observability, sre]
+
+  # DevOps / IaC / GitOps
   - url: https://www.hashicorp.com/blog/feed.xml
     tags: [devops, terraform, cloud]
   - url: https://devops.com/feed/
     tags: [devops, boas-praticas]
+  - url: https://www.infoq.com/devops/rss/
+    tags: [devops, arquitetura, boas-praticas]
+  - url: https://thenewstack.io/feed/
+    tags: [cloud, devops, kubernetes, arquitetura]
+  - url: https://about.gitlab.com/atom.xml
+    tags: [devops, ci-cd, gitops]
+  - url: https://www.docker.com/blog/feed/
+    tags: [container, devops]
+  - url: https://argoproj.github.io/feed.xml
+    tags: [gitops, kubernetes, devops]
 
 keywords:
   include:
