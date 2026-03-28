@@ -11,16 +11,16 @@ _DEFAULT_PROMPT = (
     "mesmo que a fonte mencione esses temas, foque apenas nos aspectos de "
     "infraestrutura, segurança, confiabilidade ou arquitetura envolvidos. "
     "Formato: primeira linha é o título da notícia seguido de '—' e a URL. "
-    "Depois 3 a 5 parágrafos curtos separados por linha em branco, com "
+    "Depois 4 a 5 parágrafos densos separados por linha em branco, com "
     "tom humano e direto, contexto do problema real, opinião clara com trade‑offs e "
     "um takeaway prático que o leitor pode aplicar imediatamente. "
-    "Máximo 2500 caracteres no total. Não use bullets, listas, emojis nem hashtags."
+    "Use entre 1800 e 2500 caracteres no total. Não use bullets, listas, emojis nem hashtags."
 )
 
 SYSTEM_PROMPT = os.getenv("EDITORIAL_PROMPT") or _DEFAULT_PROMPT
 
 
-def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 700) -> Optional[str]:
+def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 1200) -> Optional[str]:
     if not items:
         return None
 
