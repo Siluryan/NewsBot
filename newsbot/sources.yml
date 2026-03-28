@@ -1,0 +1,106 @@
+feeds:
+  - url: https://aws.amazon.com/blogs/architecture/feed/
+    tags: [cloud, arquitetura, boas-praticas]
+  - url: https://aws.amazon.com/blogs/security/feed/
+    tags: [seguranca, cloud]
+  - url: https://aws.amazon.com/blogs/devops/feed/
+    tags: [devops, cloud, boas-praticas]
+  - url: https://cloud.google.com/blog/topics/devops-cicd/rss
+    tags: [devops, cloud]
+  - url: https://cloud.google.com/blog/topics/security/rss
+    tags: [seguranca, cloud]
+  - url: https://azurecomcdn.azureedge.net/en-us/updates/feed/
+    tags: [cloud]
+  - url: https://kubernetes.io/feed.xml
+    tags: [sre, kubernetes, cloud]
+  - url: https://www.cncf.io/feed/
+    tags: [cloud, kubernetes, devops]
+  - url: https://blog.cloudflare.com/rss/
+    tags: [seguranca, cloud, arquitetura]
+  - url: https://feeds.feedburner.com/TheHackersNews
+    tags: [seguranca]
+  - url: https://sre.google/feeds/posts/default
+    tags: [sre, boas-praticas]
+  - url: https://www.hashicorp.com/blog/feed.xml
+    tags: [devops, terraform, cloud]
+  - url: https://devops.com/feed/
+    tags: [devops, boas-praticas]
+
+keywords:
+  include:
+    # DevOps / SRE
+    - "devops"
+    - "sre"
+    - "site reliability"
+    - "platform engineering"
+    - "ci/cd"
+    - "pipeline"
+    - "gitops"
+    - "terraform"
+    - "ansible"
+    - "helm"
+    - "observability"
+    - "monitoring"
+    - "alerting"
+    - "incident"
+    - "postmortem"
+    - "on-call"
+    - "resilience"
+    - "reliability"
+    # Cloud / Infra
+    - "cloud"
+    - "kubernetes"
+    - "container"
+    - "serverless"
+    - "microservice"
+    - "service mesh"
+    - "istio"
+    - "multi-cloud"
+    - "hybrid cloud"
+    # Segurança
+    - "security"
+    - "segurança"
+    - "zero trust"
+    - "iam"
+    - "identity"
+    - "vulnerability"
+    - "cve"
+    - "patch"
+    - "compliance"
+    - "devsecops"
+    - "supply chain"
+    - "rbac"
+    - "encryption"
+    # Arquitetura / Boas práticas
+    - "arquitetura"
+    - "architecture"
+    - "best practice"
+    - "design pattern"
+    - "scalability"
+    - "high availability"
+    - "disaster recovery"
+    - "cost optimization"
+    - "finops"
+
+  exclude:
+    # Temas não desejados
+    - "artificial intelligence"
+    - "machine learning"
+    - "deep learning"
+    - "large language model"
+    - "llm"
+    - "generative ai"
+    - "chatgpt"
+    - "copilot"
+    - "neural network"
+    - "data science"
+    - "nlp"
+    # Ruído geral
+    - "vagas"
+    - "emprego"
+    - "promoção"
+    - "marketing"
+    - "webinar"
+    - "survey"
+    - "report 2025"
+    - "report 2026"
