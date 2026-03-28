@@ -31,8 +31,8 @@ def _openai():
     return _openai_client
 
 
-GROQ_MODEL   = os.getenv("GROQ_MODEL",   "llama-3.3-70b-versatile")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+GROQ_MODEL   = os.getenv("GROQ_MODEL")   or "llama-3.3-70b-versatile"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
 
 
 def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str | None:

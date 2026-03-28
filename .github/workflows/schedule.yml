@@ -8,6 +8,9 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +56,7 @@ jobs:
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_MEMBER_URN:   ${{ secrets.LINKEDIN_MEMBER_URN }}
           GROQ_API_KEY:          ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL:            ${{ secrets.GROQ_MODEL }}
+          GROQ_MODEL:            ${{ vars.GROQ_MODEL }}
           OPENAI_API_KEY:        ${{ secrets.OPENAI_API_KEY }}
           EDITORIAL_PROMPT:      ${{ vars.EDITORIAL_PROMPT }}
           SUMMARIZE_PROMPT:      ${{ vars.SUMMARIZE_PROMPT }}
