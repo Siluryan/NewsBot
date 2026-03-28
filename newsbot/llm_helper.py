@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 try:
     from dotenv import load_dotenv
@@ -32,49 +31,55 @@ def _openai():
     return _openai_client
 
 
-GROQ_MODEL   = os.getenv("GROQ_MODEL")   or "llama-3.3-70b-versatile"
-OPENAI_MODEL = os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+GROQ_MODEL          = os.getenv("GROQ_MODEL")          or "llama-3.3-70b-versatile"
+GROQ_MODEL_FALLBACK = os.getenv("GROQ_MODEL_FALLBACK") or "llama-3.1-8b-instant"
+OPENAI_MODELS       = [
+    os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-3.5-turbo",
+    "gpt-4-turbo",
+]
 
-_RETRY_DELAYS = [5, 15]
 
-
-def _groq_call(groq, messages, temperature, max_tokens):
-    for attempt, delay in enumerate([0] + _RETRY_DELAYS, start=1):
-        if delay:
-            time.sleep(delay)
-        try:
-            resp = groq.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return resp.choices[0].message.content.strip() or None
-        except Exception as e:
-            print(f"[llm] Groq tentativa {attempt} falhou ({e.__class__.__name__}): {e}", file=sys.stderr)
-    return None
+def _groq_call(groq, model, messages, temperature, max_tokens):
+    try:
+        resp = groq.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return resp.choices[0].message.content.strip() or None
+    except Exception as e:
+        print(f"[llm] Groq ({model}) falhou ({e.__class__.__name__}): {e}", file=sys.stderr)
+        return None
 
 
 def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str | None:
     groq = _groq()
     if groq:
-        result = _groq_call(groq, messages, temperature, max_tokens)
+        result = _groq_call(groq, GROQ_MODEL, messages, temperature, max_tokens)
         if result:
             return result
-        print("[llm] Groq esgotou tentativas — tentando OpenAI...", file=sys.stderr)
+        print(f"[llm] Tentando modelo de fallback ({GROQ_MODEL_FALLBACK})...", file=sys.stderr)
+        result = _groq_call(groq, GROQ_MODEL_FALLBACK, messages, temperature, max_tokens)
+        if result:
+            return result
+        print("[llm] Groq esgotou — tentando OpenAI...", file=sys.stderr)
 
     openai = _openai()
     if openai:
-        try:
-            resp = openai.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return resp.choices[0].message.content.strip() or None
-        except Exception as e:
-            print(f"[llm] OpenAI falhou: {e}", file=sys.stderr)
+        for model in OPENAI_MODELS:
+            try:
+                resp = openai.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return resp.choices[0].message.content.strip() or None
+            except Exception as e:
+                print(f"[llm] OpenAI ({model}) falhou: {e}", file=sys.stderr)
 
     print("[llm] Nenhum provedor disponivel.", file=sys.stderr)
     return None
