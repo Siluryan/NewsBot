@@ -43,13 +43,17 @@ OPENAI_MODELS       = [
 
 def _groq_call(groq, model, messages, temperature, max_tokens):
     try:
+        print(f"[llm] Usando Groq ({model})...", file=sys.stderr)
         resp = groq.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        return resp.choices[0].message.content.strip() or None
+        result = resp.choices[0].message.content.strip() or None
+        if result:
+            print(f"[llm] Groq ({model}) OK.", file=sys.stderr)
+        return result
     except Exception as e:
         print(f"[llm] Groq ({model}) falhou ({e.__class__.__name__}): {e}", file=sys.stderr)
         return None
@@ -61,7 +65,6 @@ def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str
         result = _groq_call(groq, GROQ_MODEL, messages, temperature, max_tokens)
         if result:
             return result
-        print(f"[llm] Tentando modelo de fallback ({GROQ_MODEL_FALLBACK})...", file=sys.stderr)
         result = _groq_call(groq, GROQ_MODEL_FALLBACK, messages, temperature, max_tokens)
         if result:
             return result
@@ -71,13 +74,17 @@ def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str
     if openai:
         for model in OPENAI_MODELS:
             try:
+                print(f"[llm] Usando OpenAI ({model})...", file=sys.stderr)
                 resp = openai.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-                return resp.choices[0].message.content.strip() or None
+                result = resp.choices[0].message.content.strip() or None
+                if result:
+                    print(f"[llm] OpenAI ({model}) OK.", file=sys.stderr)
+                return result
             except Exception as e:
                 print(f"[llm] OpenAI ({model}) falhou: {e}", file=sys.stderr)
 
