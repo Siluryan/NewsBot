@@ -30,7 +30,7 @@ _DEFAULT_PROMPT = (
 SYSTEM_PROMPT = (os.getenv("EDITORIAL_PROMPT") or _DEFAULT_PROMPT) + _OUTPUT_GUARDRAIL
 
 _META_FIRST_LINE = re.compile(
-    r"""^(?ix)
+    r"""(?ix)^
     (?:
         (?:gere|gerar|crie|criar|escreva|escrever|elabore|redija|faça)\b
       | aqui\s+(?:está|temos|vai)
