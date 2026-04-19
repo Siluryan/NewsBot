@@ -1,4 +1,4 @@
-name: Lembrete mensal - token LinkedIn
+name: Reminder - Token LinkedIn
 
 on:
   schedule:
