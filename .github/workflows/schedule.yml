@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Simular execucao (ignora db e nao publica)"
+        description: "Simular execucao (ignora database e nao publica)"
         type: boolean
         default: true
 
