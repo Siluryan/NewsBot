@@ -45,8 +45,7 @@ def run():
         print("=== DRY RUN: Conteudo do post ===")
         print(text)
     else:
-        os.environ["PRIMARY_LINK_URL"] = ranked[0].get("url", "")
-        res = post_text(text)
+        res = post_text(text, article_url=ranked[0].get("url") or None)
         save(items, conn)
         print("Publicado:", res)
 
