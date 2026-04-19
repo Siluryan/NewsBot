@@ -1,7 +1,7 @@
 import os
 import sys
 import requests
-from typing import Dict
+from typing import Any, Dict, Optional
 
 
 def _get_author_urn(access_token: str) -> str:
@@ -26,7 +26,17 @@ def _get_author_urn(access_token: str) -> str:
     sys.exit(1)
 
 
-def post_text(text: str) -> Dict:
+def _primary_article_url(explicit: Optional[str]) -> Optional[str]:
+    raw = (explicit or os.environ.get("PRIMARY_LINK_URL") or "").strip()
+    if not raw:
+        return None
+    lower = raw.lower()
+    if lower.startswith("http://") or lower.startswith("https://"):
+        return raw
+    return None
+
+
+def post_text(text: str, article_url: Optional[str] = None) -> Dict:
     access_token = os.environ["LINKEDIN_ACCESS_TOKEN"]
     author = _get_author_urn(access_token)
     print(f"Postando como: {author}")
@@ -37,16 +47,28 @@ def post_text(text: str) -> Dict:
         "Content-Type": "application/json",
     }
 
+    url_for_preview = _primary_article_url(article_url)
+    share_inner: Dict[str, Any] = {
+        "shareCommentary": {
+            "text": text,
+        },
+    }
+    if url_for_preview:
+        share_inner["shareMediaCategory"] = "ARTICLE"
+        share_inner["media"] = [
+            {
+                "status": "READY",
+                "originalUrl": url_for_preview,
+            }
+        ]
+    else:
+        share_inner["shareMediaCategory"] = "NONE"
+
     payload = {
         "author": author,
         "lifecycleState": "PUBLISHED",
         "specificContent": {
-            "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {
-                    "text": text,
-                },
-                "shareMediaCategory": "NONE",
-            }
+            "com.linkedin.ugc.ShareContent": share_inner,
         },
         "visibility": {
             "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
