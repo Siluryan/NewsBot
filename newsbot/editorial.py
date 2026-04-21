@@ -70,6 +70,7 @@ def _ensure_source_url_at_end(text: str, url: str) -> str:
     esc = re.escape(u)
     lines = [ln for ln in text.splitlines() if ln.strip() != u]
     if lines:
+        lines[0] = re.sub(r"^\s*t[íi]tulo\s*:\s*", "", lines[0], flags=re.IGNORECASE).strip()
         lines[0] = re.sub(rf"\s*[—–-]\s*{esc}\s*$", "", lines[0]).rstrip()
     body = "\n".join(lines).strip()
     if not body:
