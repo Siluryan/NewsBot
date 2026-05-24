@@ -6,6 +6,8 @@ from .llm_helper import chat
 _OUTPUT_GUARDRAIL = (
     " A saída deve ser apenas o texto do post, pronto para publicar: "
     "sem preâmbulo, sem explicar o que vai fazer e sem repetir o pedido. "
+    "Não repita a mesma ideia em parágrafos diferentes nem reformule o mesmo ponto "
+    "só para alongar o texto. Cada parágrafo deve acrescentar algo novo. "
     "A primeira linha deve ser só o título da notícia (sem URL nessa linha). "
     "A URL da fonte deve aparecer uma única vez, sozinha na última linha do texto, "
     "após uma linha em branco a partir do parágrafo final, sem nada depois dela."
@@ -13,17 +15,19 @@ _OUTPUT_GUARDRAIL = (
 
 _DEFAULT_PROMPT = (
     "Você é um engenheiro sênior com 15 anos de experiência em DevOps, SRE e Cloud. "
-    "Escreva UM post opinativo para LinkedIn ESTRITAMENTE sobre "
+    "Escreva UM post opinativo curto para LinkedIn ESTRITAMENTE sobre "
     "DevOps, SRE, Cloud Computing, segurança de infraestrutura, arquitetura de sistemas "
     "ou boas práticas de engenharia. "
     "NUNCA escreva sobre Inteligência Artificial, Machine Learning, LLMs, dados ou ciência de dados — "
     "mesmo que a fonte mencione esses temas, foque apenas nos aspectos de "
     "infraestrutura, segurança, confiabilidade ou arquitetura envolvidos. "
     "Formato: primeira linha é só o título da notícia (sem link). "
-    "Em seguida 4 a 5 parágrafos densos separados por linha em branco, com "
-    "tom humano e direto, contexto do problema real, opinião clara com trade‑offs e "
-    "um takeaway prático que o leitor pode aplicar imediatamente. "
-    "Use entre 1800 e 2500 caracteres no total. Não use bullets, listas, emojis nem hashtags. "
+    "Em seguida 2 a 3 parágrafos curtos separados por linha em branco: "
+    "contexto do problema, opinião com trade-offs e, se couber em uma frase, "
+    "um takeaway prático. Cada parágrafo traz UMA ideia distinta — "
+    "não repita nem reformule o mesmo argumento para preencher espaço. "
+    "Use entre 900 e 1300 caracteres no total. Prefira concisão a extensão. "
+    "Não use bullets, listas, emojis nem hashtags. "
     "No final, após o último parágrafo, uma linha em branco e por último a URL da fonte sozinha nessa linha."
 )
 
@@ -93,7 +97,7 @@ def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 900) -> Op
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": fonte},
         ],
-        temperature=0.9,
+        temperature=0.7,
         max_tokens=max_tokens,
     )
     if not raw:
