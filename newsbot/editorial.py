@@ -3,6 +3,7 @@ import re
 import sys
 from typing import List, Dict, Optional
 from .llm_helper import chat
+from .factcheck import unsupported_claims
 
 _OUTPUT_GUARDRAIL = (
     " A saída deve ser apenas o texto do post, pronto para publicar: "
@@ -186,6 +187,29 @@ def _enforce_limit(text: str, max_chars: int = EDITORIAL_MAX_CHARS) -> str:
     return saida
 
 
+def _gerar(fonte: str, url: str, max_tokens: int, correcao: Optional[str] = None) -> Optional[str]:
+    mensagens = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": fonte},
+    ]
+    if correcao:
+        mensagens.append({"role": "user", "content": correcao})
+
+    raw = chat(messages=mensagens, temperature=0.85, max_tokens=max_tokens)
+    if not raw:
+        return None
+    cleaned = _strip_leading_meta_lines(raw)
+    if not cleaned:
+        return None
+    return _ensure_source_url_at_end(_enforce_limit(cleaned), url)
+
+
+def _relatar(problemas: List[str], prefixo: str) -> None:
+    print(f"[editorial] {prefixo} ({len(problemas)}):", file=sys.stderr)
+    for p in problemas:
+        print(f"[editorial]   - {p}", file=sys.stderr)
+
+
 def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> Optional[str]:
     if not items:
         return None
@@ -199,17 +223,55 @@ def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> O
     if content:
         fonte += f"\n\nTexto do artigo (pode estar truncado):\n{content}"
 
-    raw = chat(
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": fonte},
-        ],
-        temperature=0.85,
-        max_tokens=max_tokens,
+    texto = _gerar(fonte, url, max_tokens)
+    if not texto:
+        return None
+
+    if not content:
+        print(
+            "[editorial] Sem texto do artigo — verificacao de fatos ignorada.",
+            file=sys.stderr,
+        )
+        return texto
+
+    problemas = unsupported_claims(texto, content)
+    if problemas is None:
+        print(
+            "[editorial] Verificacao de fatos indisponivel — publicando sem checagem.",
+            file=sys.stderr,
+        )
+        return texto
+    if not problemas:
+        print("[editorial] Verificacao de fatos: aprovado.", file=sys.stderr)
+        return texto
+
+    _relatar(problemas, "Verificacao reprovou")
+    correcao = (
+        "A versão anterior do post foi reprovada na verificação de fatos. "
+        "Estas afirmações não têm respaldo no texto da fonte:\n"
+        + "\n".join(f"- {p}" for p in problemas)
+        + "\n\nReescreva o post inteiro removendo ou corrigindo cada uma delas, "
+        "mantendo gancho, tese e todas as demais regras. "
+        "Não troque um dado inventado por outro: se a fonte não traz número, "
+        "argumente sem número."
     )
-    if not raw:
+
+    texto = _gerar(fonte, url, max_tokens, correcao)
+    if not texto:
+        print("[editorial] Regeneracao falhou — editorial descartado.", file=sys.stderr)
         return None
-    cleaned = _strip_leading_meta_lines(raw)
-    if not cleaned:
+
+    problemas = unsupported_claims(texto, content)
+    if problemas is None:
+        print(
+            "[editorial] Verificacao indisponivel na segunda tentativa — "
+            "editorial descartado por precaucao.",
+            file=sys.stderr,
+        )
         return None
-    return _ensure_source_url_at_end(_enforce_limit(cleaned), url)
+    if problemas:
+        _relatar(problemas, "Segunda tentativa ainda reprovada — editorial descartado")
+        return None
+
+    print("[editorial] Verificacao de fatos: aprovado na segunda tentativa.", file=sys.stderr)
+    return texto
