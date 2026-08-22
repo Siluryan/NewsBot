@@ -27,12 +27,16 @@ def _openai():
             from openai import OpenAI
             _openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         except ImportError:
-            pass
+            print(
+                "[llm] OPENAI_API_KEY definido mas pacote `openai` nao instalado — "
+                "fallback indisponivel.",
+                file=sys.stderr,
+            )
     return _openai_client
 
 
-GROQ_MODEL          = os.getenv("GROQ_MODEL")          or "llama-3.3-70b-versatile"
-GROQ_MODEL_FALLBACK = os.getenv("GROQ_MODEL_FALLBACK") or "llama-3.1-8b-instant"
+GROQ_MODEL          = os.getenv("GROQ_MODEL")          or "openai/gpt-oss-120b"
+GROQ_MODEL_FALLBACK = os.getenv("GROQ_MODEL_FALLBACK") or "openai/gpt-oss-20b"
 OPENAI_MODELS       = [
     os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
     "gpt-4o",
