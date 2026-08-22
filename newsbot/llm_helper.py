@@ -35,6 +35,8 @@ def _openai():
     return _openai_client
 
 
+GROQ_REASONING_EFFORT = os.getenv("GROQ_REASONING_EFFORT") or "low"
+
 GROQ_MODEL          = os.getenv("GROQ_MODEL")          or "openai/gpt-oss-120b"
 GROQ_MODEL_FALLBACK = os.getenv("GROQ_MODEL_FALLBACK") or "openai/gpt-oss-20b"
 OPENAI_MODELS       = [
@@ -48,15 +50,32 @@ OPENAI_MODELS       = [
 def _groq_call(groq, model, messages, temperature, max_tokens):
     try:
         print(f"[llm] Usando Groq ({model})...", file=sys.stderr)
+        extra = {}
+        if "gpt-oss" in model:
+            # Modelos de raciocinio gastam tokens pensando antes de escrever, e esses
+            # tokens saem do mesmo orcamento de max_tokens. Com o default (medium) o
+            # raciocinio consome a cota e sobra conteudo truncado ou vazio.
+            extra["reasoning_effort"] = GROQ_REASONING_EFFORT
         resp = groq.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
+            **extra,
         )
-        result = resp.choices[0].message.content.strip() or None
-        if result:
-            print(f"[llm] Groq ({model}) OK.", file=sys.stderr)
+        choice = resp.choices[0]
+        if choice.finish_reason == "length":
+            print(
+                f"[llm] Groq ({model}) estourou max_tokens={max_tokens} "
+                f"(finish_reason=length) — descartando saida truncada.",
+                file=sys.stderr,
+            )
+            return None
+        result = (choice.message.content or "").strip() or None
+        if not result:
+            print(f"[llm] Groq ({model}) devolveu conteudo vazio.", file=sys.stderr)
+            return None
+        print(f"[llm] Groq ({model}) OK.", file=sys.stderr)
         return result
     except Exception as e:
         print(f"[llm] Groq ({model}) falhou ({e.__class__.__name__}): {e}", file=sys.stderr)
@@ -85,9 +104,19 @@ def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-                result = resp.choices[0].message.content.strip() or None
-                if result:
-                    print(f"[llm] OpenAI ({model}) OK.", file=sys.stderr)
+                choice = resp.choices[0]
+                if choice.finish_reason == "length":
+                    print(
+                        f"[llm] OpenAI ({model}) estourou max_tokens={max_tokens} "
+                        f"(finish_reason=length) — descartando saida truncada.",
+                        file=sys.stderr,
+                    )
+                    continue
+                result = (choice.message.content or "").strip() or None
+                if not result:
+                    print(f"[llm] OpenAI ({model}) devolveu conteudo vazio.", file=sys.stderr)
+                    continue
+                print(f"[llm] OpenAI ({model}) OK.", file=sys.stderr)
                 return result
             except Exception as e:
                 print(f"[llm] OpenAI ({model}) falhou: {e}", file=sys.stderr)

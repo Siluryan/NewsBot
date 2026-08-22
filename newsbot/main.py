@@ -25,6 +25,8 @@ def run():
     enriched: List[Dict[str, str]] = []
     for it in ranked_titles[:TOP_N]:
         content = extract_readable_text(it["url"])
+        if content:
+            it["content"] = content
         summary = summarize_text(it["title"], it["url"], content)
         if summary:
             it["summary"] = summary

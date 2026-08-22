@@ -8,13 +8,15 @@ _DEFAULT_PROMPT = (
     "Se o artigo mencionar Inteligência Artificial, Machine Learning ou LLMs, ignore esses aspectos "
     "e foque exclusivamente nas implicações de infraestrutura, segurança ou confiabilidade. "
     "Produza texto natural, com tom humano/profissional, destacando o porquê importa e para quem. "
-    "Responda em português brasileiro e evite jargões excessivos."
+    "Responda em português brasileiro e evite jargões excessivos. "
+    "Escreva no máximo 400 caracteres. Duas frases curtas, não uma longa: "
+    "não emende ideias com ponto e vírgula para alongar o texto."
 )
 
 SYSTEM_PROMPT = os.getenv("SUMMARIZE_PROMPT") or _DEFAULT_PROMPT
 
 
-def summarize_text(title: str, url: str, text: Optional[str], max_tokens: int = 300) -> Optional[str]:
+def summarize_text(title: str, url: str, text: Optional[str], max_tokens: int = 1000) -> Optional[str]:
     return chat(
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
