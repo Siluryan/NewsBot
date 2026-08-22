@@ -33,7 +33,9 @@ _DEFAULT_PROMPT = (
     "Não repita o título da notícia em lugar nenhum — o preview do link já mostra o título. "
     "Depois do gancho, uma linha em branco e no máximo 2 parágrafos curtos "
     "separados por linha em branco. Dois parágrafos, não três. "
-    "Entre 900 e 1300 caracteres no total, contando o gancho. "
+    "Alvo de 650 a 900 caracteres no total, contando o gancho. "
+    "Os dois parágrafos precisam sobreviver inteiros dentro desse alvo: "
+    "é melhor cortar um argumento do que entregar um parágrafo unico e denso. "
     "Não siga um molde fixo de contexto, depois opinião, depois conclusão. "
     "Abra pelo detalhe mais concreto ou mais incômodo da notícia e desenvolva a partir dele. "
     "Se dois parágrafos podem trocar de lugar sem que o texto perca nada, "
@@ -150,9 +152,10 @@ def _enforce_limit(text: str, max_chars: int = EDITORIAL_MAX_CHARS) -> str:
         return text
     blocos = [b for b in text.split("\n\n") if b.strip()]
     while len(blocos) > 2 and len("\n\n".join(blocos)) > max_chars:
+        atual = len("\n\n".join(blocos))
         removido = blocos.pop()
         print(
-            f"[editorial] {len(text)} chars acima do teto de {max_chars} — "
+            f"[editorial] {atual} chars acima do teto de {max_chars} — "
             f"removido paragrafo final ({len(removido)} chars).",
             file=sys.stderr,
         )
