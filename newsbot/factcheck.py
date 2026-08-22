@@ -31,7 +31,11 @@ _DEFAULT_PROMPT = (
 
     "Exemplo de conflação a sinalizar: a fonte diz que 14% dos usuários abandonam o "
     "pagamento e, em outro ponto, que há churn numa região; o post afirmar que 14% "
-    "abandonam naquela região combina dois dados que a fonte não correlaciona.\n\n"
+    "abandonam naquela região combina dois dados que a fonte não correlaciona.\n"
+    "Justaposição também conta: dois fatos que a fonte apenas lista lado a lado, como "
+    "sintomas distintos, não podem virar um só no post — nem como causa e efeito, nem "
+    "como o mesmo fenômeno. Proximidade no texto da fonte não é ligação afirmada por "
+    "ela. Verifique se a fonte diz que um se refere ao outro; se não disser, sinalize.\n\n"
 
     "NUNCA sinalize, mesmo que não esteja na fonte:\n"
     "- opinião, juízo de valor, crítica, discordância ou elogio;\n"
