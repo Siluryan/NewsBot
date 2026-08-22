@@ -26,8 +26,8 @@ _DEFAULT_PROMPT = (
     "ESTRUTURA: a primeira linha é um gancho — UMA afirmação curta, no máximo 90 caracteres, "
     "que expõe a tensão central do assunto e faz o leitor parar a rolagem. "
     "Afirmação seca, nunca pergunta, nunca manchete copiada, nunca frase publicitária. "
-    "Português natural e gramaticalmente correto, na ordem normal da língua "
-    "('métricas de performance', não 'performance métricas'). "
+    "Português natural e gramaticalmente correto. Substantivo antes do adjunto, "
+    "na ordem corrente da língua. Leia o gancho em voz alta: se travar, reescreva. "
     "O gancho precisa ser sustentado pelo resto do texto: se os parágrafos não provam o que "
     "ele afirma, troque o gancho. "
     "Não repita o título da notícia em lugar nenhum — o preview do link já mostra o título. "
@@ -80,6 +80,10 @@ _DEFAULT_PROMPT = (
     "produto, incidente ou caso. Antes de escrever qualquer especificidade, localize-a na fonte; "
     "se não achar, não escreva. NUNCA invente estatística, métrica, benchmark, exemplo ou falha, "
     "nem relate como vivido algo que a fonte não descreve. "
+    "Não combine dois dados separados da fonte numa única afirmação que ela não faz: "
+    "se ela diz que 14% dos usuários abandonam o pagamento E, em outro ponto, que há churn "
+    "numa região, NÃO escreva que 14% abandonam naquela região. Mantenha cada dado no "
+    "contexto em que a fonte o apresenta. "
     "Se a fonte não traz números, argumente sem números: descreva o mecanismo técnico que ela "
     "apresenta e o que ele implica. Opinião, ressalva, crítica e projeção de risco são bem-vindas "
     "e não precisam estar na fonte, desde que soem como opinião e não como fato relatado. "
@@ -151,14 +155,27 @@ def _enforce_limit(text: str, max_chars: int = EDITORIAL_MAX_CHARS) -> str:
     if len(text) <= max_chars:
         return text
     blocos = [b for b in text.split("\n\n") if b.strip()]
-    while len(blocos) > 2 and len("\n\n".join(blocos)) > max_chars:
+    while len("\n\n".join(blocos)) > max_chars and len(blocos) > 1:
         atual = len("\n\n".join(blocos))
-        removido = blocos.pop()
-        print(
-            f"[editorial] {atual} chars acima do teto de {max_chars} — "
-            f"removido paragrafo final ({len(removido)} chars).",
-            file=sys.stderr,
-        )
+        frases = re.split(r"(?<=[.!?…])\s+", blocos[-1].strip())
+        if len(frases) > 1:
+            # Tira a ultima frase antes de sacrificar o paragrafo inteiro:
+            # colapsar para um bloco unico vira parede de texto.
+            blocos[-1] = " ".join(frases[:-1])
+            print(
+                f"[editorial] {atual} chars acima do teto de {max_chars} — "
+                f"removida frase final ({len(frases[-1])} chars).",
+                file=sys.stderr,
+            )
+        elif len(blocos) > 2:
+            removido = blocos.pop()
+            print(
+                f"[editorial] {atual} chars acima do teto de {max_chars} — "
+                f"removido paragrafo final ({len(removido)} chars).",
+                file=sys.stderr,
+            )
+        else:
+            break
     saida = "\n\n".join(blocos)
     if len(saida) > max_chars:
         print(
