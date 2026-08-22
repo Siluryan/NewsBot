@@ -24,7 +24,8 @@ _DEFAULT_PROMPT = (
 
     "ESTRUTURA: a primeira linha é só o título da notícia, sem link. "
     "Depois, 2 ou 3 parágrafos curtos separados por linha em branco, "
-    "entre 900 e 1300 caracteres no total. "
+    "entre 900 e 1300 caracteres no total, contando o título. "
+    "1300 é teto rígido: se o texto passar disso, corte frases até caber. "
     "Não siga um molde fixo de contexto, depois opinião, depois conclusão. "
     "Abra pelo detalhe mais concreto ou mais incômodo da notícia e desenvolva a partir dele. "
     "Se dois parágrafos podem trocar de lugar sem que o texto perca nada, "
@@ -34,6 +35,14 @@ _DEFAULT_PROMPT = (
     "Assuma uma posição clara em vez de equilibrar os dois lados até sobrar neutralidade. "
     "Prefira o específico ao abstrato: cite o mecanismo, o modo de falha, a ferramenta ou o número "
     "em vez de falar em desafios, impactos, importância ou relevância. "
+
+    "FATOS: todo dado concreto — número, porcentagem, versão, região, empresa, ferramenta, "
+    "incidente ou caso — precisa estar no texto da fonte. NUNCA invente estatística, métrica, "
+    "benchmark ou exemplo que não esteja ali, nem relate como vivido algo que a fonte não descreve. "
+    "Se a fonte não traz números, argumente sem números: descreva o mecanismo técnico que ela "
+    "apresenta. Opinião, ressalva e leitura própria são bem-vindas, desde que soem como opinião "
+    "e não como fato extraído da notícia. Um texto correto e sem números vale mais que um texto "
+    "específico e inventado. "
     "Varie o comprimento das frases. Evite simetria de manual. "
 
     "NÃO USE, em nenhuma variação: 'takeaway', 'a lição que fica', 'o ponto aqui é', "
@@ -107,7 +116,10 @@ def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> O
     title   = top.get("title", "")
     url     = top.get("url", "")
     summary = (top.get("summary", "") or "")[:600]
+    content = (top.get("content", "") or "")[:3500]
     fonte   = f"Título: {title}\nURL: {url}\nResumo: {summary}"
+    if content:
+        fonte += f"\n\nTexto do artigo (pode estar truncado):\n{content}"
 
     raw = chat(
         messages=[
