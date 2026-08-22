@@ -27,8 +27,11 @@ _DEFAULT_PROMPT = (
     "ESTRUTURA: a primeira linha é um gancho — UMA afirmação curta, no máximo 90 caracteres, "
     "que expõe a tensão central do assunto e faz o leitor parar a rolagem. "
     "Afirmação seca, nunca pergunta, nunca manchete copiada, nunca frase publicitária. "
-    "Português natural e gramaticalmente correto. Substantivo antes do adjunto, "
-    "na ordem corrente da língua. Leia o gancho em voz alta: se travar, reescreva. "
+    "Português natural e gramaticalmente correto. Cuidado com decalque do inglês: "
+    "em português o substantivo vem primeiro e o complemento depois, ligado por "
+    "preposição — 'métricas de performance', 'tempo de resposta', 'taxa de erro'. "
+    "A ordem inglesa, com o qualificador colado antes do substantivo, está errada. "
+    "Leia o gancho em voz alta antes de entregar: se travar, reescreva. "
     "O gancho precisa ser sustentado pelo resto do texto: se os parágrafos não provam o que "
     "ele afirma, troque o gancho. "
     "Não repita o título da notícia em lugar nenhum — o preview do link já mostra o título. "
@@ -253,7 +256,11 @@ def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> O
         + "\n\nReescreva o post inteiro removendo ou corrigindo cada uma delas, "
         "mantendo gancho, tese e todas as demais regras. "
         "Não troque um dado inventado por outro: se a fonte não traz número, "
-        "argumente sem número."
+        "argumente sem número. "
+        "Reescreva o post como se fosse a primeira versão: não mencione a correção, "
+        "não escreva ressalvas sobre o que você deixou de afirmar "
+        "(nada de 'sem presumir que', 'sem afirmar que'), e não deixe o texto "
+        "descritivo — a tese e a crítica do segundo parágrafo precisam sobreviver."
     )
 
     texto = _gerar(fonte, url, max_tokens, correcao)
