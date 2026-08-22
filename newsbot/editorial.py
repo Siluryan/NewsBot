@@ -99,7 +99,7 @@ def _ensure_source_url_at_end(text: str, url: str) -> str:
     return f"{body}\n\n{u}"
 
 
-def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 900) -> Optional[str]:
+def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> Optional[str]:
     if not items:
         return None
 
