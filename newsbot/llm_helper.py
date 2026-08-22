@@ -47,7 +47,7 @@ OPENAI_MODELS       = [
 ]
 
 
-def _groq_call(groq, model, messages, temperature, max_tokens):
+def _groq_call(groq, model, messages, temperature, max_tokens, reasoning_effort=None):
     try:
         print(f"[llm] Usando Groq ({model})...", file=sys.stderr)
         extra = {}
@@ -55,7 +55,7 @@ def _groq_call(groq, model, messages, temperature, max_tokens):
             # Modelos de raciocinio gastam tokens pensando antes de escrever, e esses
             # tokens saem do mesmo orcamento de max_tokens. Com o default (medium) o
             # raciocinio consome a cota e sobra conteudo truncado ou vazio.
-            extra["reasoning_effort"] = GROQ_REASONING_EFFORT
+            extra["reasoning_effort"] = reasoning_effort or GROQ_REASONING_EFFORT
         resp = groq.chat.completions.create(
             model=model,
             messages=messages,
@@ -82,13 +82,18 @@ def _groq_call(groq, model, messages, temperature, max_tokens):
         return None
 
 
-def chat(messages: list, temperature: float = 0.7, max_tokens: int = 700) -> str | None:
+def chat(
+    messages: list,
+    temperature: float = 0.7,
+    max_tokens: int = 700,
+    reasoning_effort: str | None = None,
+) -> str | None:
     groq = _groq()
     if groq:
-        result = _groq_call(groq, GROQ_MODEL, messages, temperature, max_tokens)
+        result = _groq_call(groq, GROQ_MODEL, messages, temperature, max_tokens, reasoning_effort)
         if result:
             return result
-        result = _groq_call(groq, GROQ_MODEL_FALLBACK, messages, temperature, max_tokens)
+        result = _groq_call(groq, GROQ_MODEL_FALLBACK, messages, temperature, max_tokens, reasoning_effort)
         if result:
             return result
         print("[llm] Groq esgotou — tentando OpenAI...", file=sys.stderr)

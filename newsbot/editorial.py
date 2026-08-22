@@ -3,6 +3,7 @@ import re
 import sys
 from typing import List, Dict, Optional
 from .llm_helper import chat
+from .factcheck import unsupported_claims
 
 _OUTPUT_GUARDRAIL = (
     " A saída deve ser apenas o texto do post, pronto para publicar: "
@@ -26,8 +27,11 @@ _DEFAULT_PROMPT = (
     "ESTRUTURA: a primeira linha é um gancho — UMA afirmação curta, no máximo 90 caracteres, "
     "que expõe a tensão central do assunto e faz o leitor parar a rolagem. "
     "Afirmação seca, nunca pergunta, nunca manchete copiada, nunca frase publicitária. "
-    "Português natural e gramaticalmente correto, na ordem normal da língua "
-    "('métricas de performance', não 'performance métricas'). "
+    "Português natural e gramaticalmente correto. Cuidado com decalque do inglês: "
+    "em português o substantivo vem primeiro e o complemento depois, ligado por "
+    "preposição — 'métricas de performance', 'tempo de resposta', 'taxa de erro'. "
+    "A ordem inglesa, com o qualificador colado antes do substantivo, está errada. "
+    "Leia o gancho em voz alta antes de entregar: se travar, reescreva. "
     "O gancho precisa ser sustentado pelo resto do texto: se os parágrafos não provam o que "
     "ele afirma, troque o gancho. "
     "Não repita o título da notícia em lugar nenhum — o preview do link já mostra o título. "
@@ -80,6 +84,10 @@ _DEFAULT_PROMPT = (
     "produto, incidente ou caso. Antes de escrever qualquer especificidade, localize-a na fonte; "
     "se não achar, não escreva. NUNCA invente estatística, métrica, benchmark, exemplo ou falha, "
     "nem relate como vivido algo que a fonte não descreve. "
+    "Não combine dois dados separados da fonte numa única afirmação que ela não faz: "
+    "se ela diz que 14% dos usuários abandonam o pagamento E, em outro ponto, que há churn "
+    "numa região, NÃO escreva que 14% abandonam naquela região. Mantenha cada dado no "
+    "contexto em que a fonte o apresenta. "
     "Se a fonte não traz números, argumente sem números: descreva o mecanismo técnico que ela "
     "apresenta e o que ele implica. Opinião, ressalva, crítica e projeção de risco são bem-vindas "
     "e não precisam estar na fonte, desde que soem como opinião e não como fato relatado. "
@@ -151,14 +159,27 @@ def _enforce_limit(text: str, max_chars: int = EDITORIAL_MAX_CHARS) -> str:
     if len(text) <= max_chars:
         return text
     blocos = [b for b in text.split("\n\n") if b.strip()]
-    while len(blocos) > 2 and len("\n\n".join(blocos)) > max_chars:
+    while len("\n\n".join(blocos)) > max_chars and len(blocos) > 1:
         atual = len("\n\n".join(blocos))
-        removido = blocos.pop()
-        print(
-            f"[editorial] {atual} chars acima do teto de {max_chars} — "
-            f"removido paragrafo final ({len(removido)} chars).",
-            file=sys.stderr,
-        )
+        frases = re.split(r"(?<=[.!?…])\s+", blocos[-1].strip())
+        if len(frases) > 1:
+            # Tira a ultima frase antes de sacrificar o paragrafo inteiro:
+            # colapsar para um bloco unico vira parede de texto.
+            blocos[-1] = " ".join(frases[:-1])
+            print(
+                f"[editorial] {atual} chars acima do teto de {max_chars} — "
+                f"removida frase final ({len(frases[-1])} chars).",
+                file=sys.stderr,
+            )
+        elif len(blocos) > 2:
+            removido = blocos.pop()
+            print(
+                f"[editorial] {atual} chars acima do teto de {max_chars} — "
+                f"removido paragrafo final ({len(removido)} chars).",
+                file=sys.stderr,
+            )
+        else:
+            break
     saida = "\n\n".join(blocos)
     if len(saida) > max_chars:
         print(
@@ -167,6 +188,29 @@ def _enforce_limit(text: str, max_chars: int = EDITORIAL_MAX_CHARS) -> str:
             file=sys.stderr,
         )
     return saida
+
+
+def _gerar(fonte: str, url: str, max_tokens: int, correcao: Optional[str] = None) -> Optional[str]:
+    mensagens = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": fonte},
+    ]
+    if correcao:
+        mensagens.append({"role": "user", "content": correcao})
+
+    raw = chat(messages=mensagens, temperature=0.85, max_tokens=max_tokens)
+    if not raw:
+        return None
+    cleaned = _strip_leading_meta_lines(raw)
+    if not cleaned:
+        return None
+    return _ensure_source_url_at_end(_enforce_limit(cleaned), url)
+
+
+def _relatar(problemas: List[str], prefixo: str) -> None:
+    print(f"[editorial] {prefixo} ({len(problemas)}):", file=sys.stderr)
+    for p in problemas:
+        print(f"[editorial]   - {p}", file=sys.stderr)
 
 
 def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> Optional[str]:
@@ -182,17 +226,59 @@ def generate_editorial(items: List[Dict[str, str]], max_tokens: int = 2000) -> O
     if content:
         fonte += f"\n\nTexto do artigo (pode estar truncado):\n{content}"
 
-    raw = chat(
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": fonte},
-        ],
-        temperature=0.85,
-        max_tokens=max_tokens,
+    texto = _gerar(fonte, url, max_tokens)
+    if not texto:
+        return None
+
+    if not content:
+        print(
+            "[editorial] Sem texto do artigo — verificacao de fatos ignorada.",
+            file=sys.stderr,
+        )
+        return texto
+
+    problemas = unsupported_claims(texto, content)
+    if problemas is None:
+        print(
+            "[editorial] Verificacao de fatos indisponivel — publicando sem checagem.",
+            file=sys.stderr,
+        )
+        return texto
+    if not problemas:
+        print("[editorial] Verificacao de fatos: aprovado.", file=sys.stderr)
+        return texto
+
+    _relatar(problemas, "Verificacao reprovou")
+    correcao = (
+        "A versão anterior do post foi reprovada na verificação de fatos. "
+        "Estas afirmações não têm respaldo no texto da fonte:\n"
+        + "\n".join(f"- {p}" for p in problemas)
+        + "\n\nReescreva o post inteiro removendo ou corrigindo cada uma delas, "
+        "mantendo gancho, tese e todas as demais regras. "
+        "Não troque um dado inventado por outro: se a fonte não traz número, "
+        "argumente sem número. "
+        "Reescreva o post como se fosse a primeira versão: não mencione a correção, "
+        "não escreva ressalvas sobre o que você deixou de afirmar "
+        "(nada de 'sem presumir que', 'sem afirmar que'), e não deixe o texto "
+        "descritivo — a tese e a crítica do segundo parágrafo precisam sobreviver."
     )
-    if not raw:
+
+    texto = _gerar(fonte, url, max_tokens, correcao)
+    if not texto:
+        print("[editorial] Regeneracao falhou — editorial descartado.", file=sys.stderr)
         return None
-    cleaned = _strip_leading_meta_lines(raw)
-    if not cleaned:
+
+    problemas = unsupported_claims(texto, content)
+    if problemas is None:
+        print(
+            "[editorial] Verificacao indisponivel na segunda tentativa — "
+            "editorial descartado por precaucao.",
+            file=sys.stderr,
+        )
         return None
-    return _ensure_source_url_at_end(_enforce_limit(cleaned), url)
+    if problemas:
+        _relatar(problemas, "Segunda tentativa ainda reprovada — editorial descartado")
+        return None
+
+    print("[editorial] Verificacao de fatos: aprovado na segunda tentativa.", file=sys.stderr)
+    return texto

@@ -48,7 +48,10 @@ def run():
         print(text)
     else:
         res = post_text(text, article_url=ranked[0].get("url") or None)
-        save(items, conn)
+        # Grava apenas o item publicado. Gravar a lista inteira marcava como
+        # vistos os 6 a 11 artigos que sobravam a cada execucao, descartando-os
+        # para sempre; agora eles ficam no backlog e concorrem no proximo run.
+        save([ranked[0]], conn)
         print("Publicado:", res)
 
 

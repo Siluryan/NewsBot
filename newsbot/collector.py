@@ -1,12 +1,15 @@
 import feedparser
 import hashlib
+import os
 import sqlite3
-from datetime import datetime, timezone
+import sys
+from datetime import datetime, timedelta, timezone
 import yaml
 import re
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 DB_PATH = "newsbot/db.sqlite"
+MAX_ITEM_AGE_DAYS = int(os.getenv("MAX_ITEM_AGE_DAYS") or 3)
 SOURCES_PATH = "newsbot/sources.yml"
 
 
@@ -45,6 +48,24 @@ def hash_id(url: str) -> str:
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
 
+def entry_datetime(entry: Any) -> Optional[datetime]:
+    """Data de publicacao do item, em UTC, ou None se o feed nao informar."""
+    parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+    if not parsed:
+        return None
+    try:
+        return datetime(*parsed[:6], tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_fresh(dt: Optional[datetime], max_age_days: int = MAX_ITEM_AGE_DAYS) -> bool:
+    """Item sem data confiavel nao e descartado: melhor manter do que perder."""
+    if dt is None:
+        return True
+    return datetime.now(timezone.utc) - dt <= timedelta(days=max_age_days)
+
+
 def collect() -> Tuple[List[Dict[str, str]], sqlite3.Connection]:
     cfg = load_sources()
     include = [k.lower() for k in cfg["keywords"]["include"]]
@@ -53,6 +74,7 @@ def collect() -> Tuple[List[Dict[str, str]], sqlite3.Connection]:
     cur = conn.cursor()
 
     picked: List[Dict[str, str]] = []
+    stale = 0
     for feed in cfg["feeds"]:
         parsed = feedparser.parse(feed["url"])
         for entry in parsed.entries[:20]:
@@ -61,6 +83,9 @@ def collect() -> Tuple[List[Dict[str, str]], sqlite3.Connection]:
             if not url or not title:
                 continue
             if not matches_keywords(title, include, exclude):
+                continue
+            if not is_fresh(entry_datetime(entry)):
+                stale += 1
                 continue
             item_id = hash_id(url)
             cur.execute("SELECT 1 FROM items WHERE id = ?", (item_id,))
@@ -77,6 +102,11 @@ def collect() -> Tuple[List[Dict[str, str]], sqlite3.Connection]:
         seen_urls.add(it["url"])
         unique.append(it)
 
+    print(
+        f"[collector] {len(unique)} itens disponiveis "
+        f"(descartados por idade > {MAX_ITEM_AGE_DAYS} dias: {stale}).",
+        file=sys.stderr,
+    )
     return unique, conn
 
 
